@@ -8,7 +8,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * An implementation of {@link picocli.CommandLine.ITypeConverter} to convert a {@link java.lang.String} cmdline argument to
+ * {@link Map<String, List<String>>} map. The keys of the map are used as {@link org.apache.kafka.clients.producer.ProducerRecord} keys,
+ * the values are files on disk containing the actual records.
+ */
+
 public final class DataInputConverter implements CommandLine.ITypeConverter<DataInput> {
+
+    /**
+     * @param value the command line argument
+     * @return a map of record keys -> list of files
+     * @throws Exception
+     */
     @Override
     public DataInput convert(String value) throws Exception {
         Map<String, List<String>> result = new HashMap<>();

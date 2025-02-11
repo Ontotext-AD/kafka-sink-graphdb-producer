@@ -21,26 +21,90 @@ import static com.ontotext.confurations.RuntimeConfiguration.VERSION;
 import static org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
+/**
+ * <p>
+ * The main command line program. Parses the command line arguments and runs the {@link KafkaSinkProducer} to create and send records downstream
+ * </p>
+ * <h2> CLI usage </h2>
+ * To view the help text, simply run the program without arguments, or with
+ * <pre>
+ *     --help
+ * </pre>
+ * The following arguments must be provided:
+ *
+ *     <ul>
+ *         <li>--kafka-topic</li>
+ *         <li>--rdf-format</li>
+ *         <li><b>One of</b> --data, --random-data-size, --interactive</li>
+ *     </ul>
+ *
+ *
+ * <h2>Examples</h2>
+ * <p id="checksum_example">
+ * </pre><p>
+ * <h3>Generate X random records</h3>
+ * The below command will generate X records with random data, and will send them to the provided (required) kafka topic in the specified (required) RDF format
+ * <pre>
+ *     --random-data-size X
+ * </pre>
+ * </p>
+ * <h3>Parse and send data on disk</h3>
+ * The below command will read the files from disk, parse the records inside, and send them downstream. The key is provided in the argument. The RDF format of the data contents is specified in the file extension
+ * <pre>
+ *  --data key1=/tmp/data-file-1.ttl --data key1=/tmp/data-file-2.ttl --data key1=/tmp/data-file-3.jsonld
+ * </pre>
+ * The key will be randomly generated if not provided in the input
+ * <pre>
+ *  --data /tmp/data-file-1.ttl --data /tmp/data-file-2.ttl --data /tmp/data-file-3.jsonld
+ * </pre>
+ * This is identical to having the three files mapped to the same (randomly generated) key
+ * </p>
+ * <h3>Interactively insert records</h3>
+ * The following command will start an interactive session with the user.
+ * <pre>
+ *     --interactive
+ * </pre>
+ * </p>
+ */
+
 @CommandLine.Command(name = "kafka-sink-producer", mixinStandardHelpOptions = true, version = VERSION, description = "Produces Kafka records for a Kafka Sink Connector")
 public class KafkaSinkProducerCli implements Callable<Integer> {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(KafkaSinkProducerCli.class);
 
+    /**
+     * Referenced here for error handling
+     */
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec; // injected by picocli
 
+    /**
+     * The kafka topic to send data downstream. This is a required argument
+     */
     @CommandLine.Option(names = "--topic", description = "Kafka topic", required = true)
     private String kafkaTopic;
 
+    /**
+     * Optional. Use if the Kafka Connect server runs on a separate machine/port. Defaults to localhost:19092
+     */
     @CommandLine.Option(names = "--bootstrap-server", description = "Bootstrap server", defaultValue = "127.0.0.1:19092")
     private String bootstrapServer;
 
+    /**
+     * -v for DEBUG, -vv for TRACE
+     */
     @CommandLine.Option(names = "-v", description = {"Verbosity level.", "For example, `-v -v -v` or `-vvv`"})
     private final boolean[] verbosity = new boolean[0];
 
+    /**
+     * Required. Must conform to the format specified in {@link RDFFormat#getDefaultFileExtension}
+     */
     @CommandLine.Option(names = "--rdf-format", description = "The RDF format of the data", required = true, converter = RdfFormatConverter.class)
     private RDFFormat rdfFormat;
 
+    /**
+     * Optional. Additional properties to pass to the Kafka producer. Properties defined here will override properties with the same key defined in the configurations file
+     */
     @CommandLine.Option(names = "--prop", description = "Additional properties to set")
     private final Map<String, String> props = new HashMap<>();
 
@@ -53,6 +117,14 @@ public class KafkaSinkProducerCli implements Callable<Integer> {
     @CommandLine.ArgGroup(multiplicity = "1")
     Mutex mutex;
 
+    /**
+     * The CLI accepts only one of the three options below
+     * <pre>
+     *     --random-data-size INT - auto-generate this number of records
+     *     --data - parse provided files
+     *     --interactive - start interactive session
+     * </pre>
+     */
     static class Mutex {
         @CommandLine.Option(names = "--random-data-size", description = "How many random data records to produce. This option is mostly feasible with ADD operations")
         private int randomDataSize;

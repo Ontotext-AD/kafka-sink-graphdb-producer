@@ -19,6 +19,17 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Produces and sends Kafka records based on chosen strategy.
+ * Currently supported strategies:
+ * <ul>
+ *     <li>Random data</li>
+ *     <li>Data files</li>
+ *     <li>Interactive</li>
+ * </ul>
+ *
+ * @see com.ontotext.kafka.sink.cli.KafkaSinkProducerCli
+ */
 public class KafkaSinkProducer {
     private static final Logger log = LoggerFactory.getLogger(KafkaSinkProducer.class);
     private final String kafkaTopic;
@@ -32,6 +43,12 @@ public class KafkaSinkProducer {
         this.configuration = configuration;
     }
 
+    /**
+     * Parses the provided data files for (valid) records and sends them downstream.
+     * Gracefully handles and logs any invalid records (or any related failures)
+     *
+     * @param dataInput - the data files, mapped by record keys
+     */
     public void sendMessagesToKafka(DataInput dataInput) {
         log.info("Sending {} to kafka topic {}", dataInput.data(), kafkaTopic);
         try (KafkaProducer<byte[], byte[]> producer = new KafkaProducer<>(configuration.getProperties())) {
@@ -72,9 +89,10 @@ public class KafkaSinkProducer {
         }
     }
 
+
     /**
-     * Adds generated json-ld documents to a kafka topic. Those json-ld files are then processed by the kafka sink
-     * and stored in GraphDB.
+     * Generates random records and sends them downstream
+     * @param randomDataSize the number of randomly generated records
      */
     public void sendRandomDataToKafka(int randomDataSize) {
         log.info("Sending {} randomized data records to kafka topic {}", randomDataSize, kafkaTopic);
@@ -103,6 +121,17 @@ public class KafkaSinkProducer {
         }
     }
 
+    /**
+     * Start an interactive session.
+     * The interactive flow is as follows:
+     * <pre>1. Ask the user for the input RDF format of all subsequent data. The format is constant for the entirety of the session</pre>
+     * <pre>2. Aask for a new record and key. If no key is provided, one will be auto-generated.
+     * </p> The record can be provided in a single line, or if multiline, Bash-style multiline formatting is used (i.e. put \ at the end of the line to denote more lines incoming)
+     * </pre>
+     * <pre>3. Parse and convert the record into the output RDF format</pre>
+     * <pre>4. Send the record downstream</pre>
+     * <pre>5. Repeat until process is interrupted (i.e. Ctrl+C)</pre>
+     */
     public void runInteractiveMode() {
         log.info("Starting interactive mode");
         Signal.handle(new Signal("INT"),

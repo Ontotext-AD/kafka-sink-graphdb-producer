@@ -9,6 +9,9 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import java.io.IOException;
 import java.util.Map;
 
+/**
+ * Convert data between an input {@link RDFFormat} format and {@link RDFFormat#JSONLD}
+ */
 public final class JsonDataConverter extends RdfFormatConverter {
 
     private final ObjectMapper objectMapper;

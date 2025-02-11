@@ -9,6 +9,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 
+
+/**
+ * Convert data between two {@link RDFFormat} formats. Simply returns the data if input and output formats are the same.
+ */
 public class RdfFormatConverter {
 
     protected final Logger log;

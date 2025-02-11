@@ -9,6 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
+/**
+ * Wrapper class
+ *
+ * @param data
+ */
 public record DataInput(Map<String, List<String>> data) {
 
     public DataInput(Map<String, List<String>> data) {
@@ -22,6 +27,11 @@ public record DataInput(Map<String, List<String>> data) {
         return joiner.toString();
     }
 
+    /**
+     * Validate that all values correspond to files that exist on disk.
+     *
+     * @return values that do not point to actual files on disk
+     */
     public String[] validateDataFilesExist() {
         return data.values().stream().flatMap(List::stream).filter(s -> !Files.exists(Paths.get(s))).toArray(String[]::new);
     }

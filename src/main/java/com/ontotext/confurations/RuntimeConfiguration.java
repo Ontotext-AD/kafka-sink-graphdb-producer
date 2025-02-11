@@ -5,7 +5,8 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Class used to access the demonstrator configurations.
+ * Holds the configuration for the Kafka producer. Loads the configuration from file, then overwrites any properties
+ * with those provided in the constructor argument
  */
 public class RuntimeConfiguration {
     public static final String VERSION = "Kafka Sink Producer 1.0";
