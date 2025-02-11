@@ -13,11 +13,16 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 
-import static com.ontotext.confurations.RuntimeConfiguration.VERSION;
+import static com.ontotext.kafka.sink.cli.KafkaSinkProducerCli.FOOTER;
 import static org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
@@ -67,8 +72,45 @@ import static org.slf4j.Logger.ROOT_LOGGER_NAME;
  * </p>
  */
 
-@CommandLine.Command(name = "kafka-sink-producer", mixinStandardHelpOptions = true, version = VERSION, description = "Produces Kafka records for a Kafka Sink Connector")
+@CommandLine.Command(name = "kafka-sink-producer",
+        mixinStandardHelpOptions = true,
+        versionProvider = KafkaSinkProducerCli.ManifestVersionProvider.class,
+        description = "Produces Kafka records for a Kafka Sink Connector",
+        footerHeading = "Examples%n",
+        footer = FOOTER
+)
 public class KafkaSinkProducerCli implements Callable<Integer> {
+
+    public static final String FOOTER = """
+            
+            Generate 10 random JSONLD-formatted records and send them to "add" topic downstream
+            
+            $ kafka-sink-producer --random-data-size 10 --topic add --rdf-format jsonld
+            
+            Parse files from disk and send them to "add" topic downstream, in TTL format. Auto-generate keys
+            
+            $ kafka-sink-producer --data /tmp/data-file1.jsonld --data /tmp/data-file2.ttl --rdf-format ttl --topic add
+            
+            Parse files from disk, send each data file with separate key
+            
+            $ kafka-sink-producer --data key1=/tmp/data-file1.jsonld --data key2=/tmp/data-file2.ttl --rdf-format ttl --topic add
+            
+            Interactively send records
+            
+            $ kafka-sink-producer --interactive
+            
+            When interacting with the producer (i.e. --interactive), records can be provided in single line, i.e.
+            
+            $ <urn:a> <urn:b> <urn:c> .
+            
+            or multiline, i.e. For multiline, use '\\' to indicate more lines incoming
+            
+            $ { "id" : "http://example.com#One" \\
+                "urn:a" : "one", \\
+                "urn:b" : "two", \\
+            }
+            
+            """;
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(KafkaSinkProducerCli.class);
 
@@ -183,8 +225,37 @@ public class KafkaSinkProducerCli implements Callable<Integer> {
         }
     }
 
+
     public static void main(String[] args) {
         int exitCode = new CommandLine(new KafkaSinkProducerCli()).execute(args);
         System.exit(exitCode);
+    }
+
+    static class ManifestVersionProvider implements CommandLine.IVersionProvider {
+        public String[] getVersion() throws Exception {
+            Enumeration<URL> resources = CommandLine.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
+            while (resources.hasMoreElements()) {
+                URL url = resources.nextElement();
+                try {
+                    Manifest manifest = new Manifest(url.openStream());
+                    if (isApplicableManifest(manifest)) {
+                        Attributes attr = manifest.getMainAttributes();
+                        return new String[]{get(attr, "Version").toString()};
+                    }
+                } catch (IOException ex) {
+                    return new String[]{"Unable to read from " + url + ": " + ex};
+                }
+            }
+            return new String[0];
+        }
+
+        private boolean isApplicableManifest(Manifest manifest) {
+            Attributes attributes = manifest.getMainAttributes();
+            return get(attributes, "Version") != null;
+        }
+
+        private static Object get(Attributes attributes, String key) {
+            return attributes.get(new Attributes.Name(key));
+        }
     }
 }

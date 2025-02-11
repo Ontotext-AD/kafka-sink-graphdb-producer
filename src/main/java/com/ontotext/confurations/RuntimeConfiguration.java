@@ -9,7 +9,6 @@ import java.util.Properties;
  * with those provided in the constructor argument
  */
 public class RuntimeConfiguration {
-    public static final String VERSION = "Kafka Sink Producer 1.0";
     private final Properties properties;
 
     public RuntimeConfiguration(Map<String, String> propsMap) {

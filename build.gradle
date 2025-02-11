@@ -50,13 +50,12 @@ application {
     mainClass = "com.ontotext.kafka.sink.cli.KafkaSinkProducerCli"
 }
 
-tasks.register('fatJar', Jar) {
-    group 'build'
+jar {
     manifest {
         attributes 'Main-Class': 'com.ontotext.kafka.sink.cli.KafkaSinkProducerCli'
+        attributes 'Version': version
     }
     archiveBaseName = 'kafka-producer'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
 }
